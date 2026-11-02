@@ -1,0 +1,42 @@
+---
+/**
+ * A small, build-time US map. State geometry lives ONCE in <MapSprite />
+ * (rendered by the page); each MiniMap only emits <use> references,
+ * so thirteen maps cost about as much as one.
+ */
+import { geoAlbersUsa } from "d3-geo";
+import { stateIds } from "./mapGeometry";
+
+interface Props { states?: string[]; points?: [number, number][]; label: string; size?: "sm" | "lg" }
+const { states = [], points = [], label, size = "sm" } = Astro.props;
+
+const projection = geoAlbersUsa().scale(1300).translate([487.5, 305]);
+const all = states.includes("all");
+const dots = points.map((p) => projection(p)).filter(Boolean) as [number, number][];
+---
+<figure class:list={["minimap", size]} role="img" aria-label={label}>
+  <svg viewBox="0 0 975 610">
+    {stateIds.map((id) => <use href={`#us-st-${id}`} class:list={["st", { on: all || states.includes(id) }]} />)}
+    <use href="#us-borders" class="borders" />
+    {dots.map(([x, y]) => (
+      <g class="dot" transform={`translate(${x.toFixed(1)} ${y.toFixed(1)})`}>
+        <circle r="18" class="halo" />
+        <circle r="6" />
+      </g>
+    ))}
+  </svg>
+</figure>
+
+<style>
+  .minimap { margin: 0; width: 100%; }
+  .minimap.sm { max-width: 220px; }
+  .minimap.lg { max-width: 520px; }
+  svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .st { fill: color-mix(in oklab, var(--fg) 9%, transparent); transition: fill 600ms var(--ease-republic); }
+  .st.on { fill: var(--accent); fill-opacity: 0.85; }
+  .borders { fill: none; stroke: color-mix(in oklab, var(--sky-a) 80%, transparent); stroke-width: 0.8; stroke-linejoin: round; }
+  .dot { fill: var(--accent); }
+  .halo { fill: var(--accent); opacity: 0.22; transform-box: fill-box; transform-origin: center; animation: pulse 2.8s var(--ease-tide) infinite; }
+  @keyframes pulse { 0%, 100% { transform: scale(0.6); opacity: 0.35; } 50% { transform: scale(1.15); opacity: 0.08; } }
+  @media (prefers-reduced-motion: reduce) { .halo { animation: none; } }
+</style>

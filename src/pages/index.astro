@@ -1,0 +1,76 @@
+---
+import Base from "../layouts/Base.astro";
+import Chrome from "../components/Chrome.astro";
+import Scene from "../components/Scene.astro";
+import MapSprite from "../components/MapSprite.astro";
+import Slide from "../components/slides/Slide.astro";
+import TitleSlide from "../components/slides/TitleSlide.astro";
+import ChapterSlide from "../components/slides/ChapterSlide.astro";
+import PromiseSlide from "../components/slides/PromiseSlide.astro";
+import VoteSlide from "../components/slides/VoteSlide.astro";
+import { buildDeck } from "../data/deck";
+import { chapters } from "../data/chapters";
+import { site } from "../data/site";
+
+const slides = buildDeck();
+const total = slides.length;
+const labelOf = (s: (typeof slides)[number]) =>
+  s.kind === "title" ? "Prologue"
+  : s.kind === "vote" ? "Epilogue"
+  : s.kind === "chapter" ? `Chapter ${s.chapter.numeral}: ${s.chapter.title}`
+  : `${s.chapter.title}, promise ${s.ordinal} of ${slides.filter((x) => x.kind === "promise").length}`;
+---
+<Base description={`${site.tagline} A click-through journey across America.`}>
+  <MapSprite />
+  <a class="sr-only" href="/record">Skip the presentation and read the full record</a>
+
+  <!-- One landscape per chapter; stays still while that chapter's slides glide over it. -->
+  <div class="backdrops" aria-hidden="true">
+    {chapters.map((c, i) => (
+      <div class="backdrop" data-backdrop={c.id} hidden
+        style={`--sky-a:${c.palette.skyA};--sky-b:${c.palette.skyB};--land:${c.palette.land};--accent:${c.palette.accent};`}>
+        <Scene scene={c.scene} seed={i * 11 + 5} tone={c.tone} />
+      </div>
+    ))}
+  </div>
+
+  <main class="deck" data-deck aria-roledescription="carousel" aria-label={site.name}>
+    {slides.map((s, i) => (
+      <Slide
+        index={i}
+        total={total}
+        id={s.id}
+        kind={s.kind}
+        label={labelOf(s)}
+        chapter={s.kind === "chapter" || s.kind === "promise" ? s.chapter.id : ""}
+        tone={s.kind === "chapter" || s.kind === "promise" ? s.chapter.tone : "dark"}
+        palette={s.kind === "chapter" || s.kind === "promise" ? s.chapter.palette : undefined}
+      >
+        {s.kind === "title" && <TitleSlide />}
+        {s.kind === "chapter" && <ChapterSlide chapter={s.chapter} count={s.count} sectionTitles={s.sectionTitles} />}
+        {s.kind === "promise" && <PromiseSlide chapter={s.chapter} promise={s.promise} sectionTitle={s.sectionTitle} ordinal={s.ordinal} />}
+        {s.kind === "vote" && <VoteSlide />}
+      </Slide>
+    ))}
+  </main>
+
+  <Chrome slides={slides} />
+  <p class="sr-only" aria-live="polite" data-announcer></p>
+
+  <script>
+    import { initDeck } from "../scripts/deck";
+    initDeck();
+  </script>
+</Base>
+
+<style>
+  .backdrops { position: fixed; inset: 0; view-transition-name: backdrop; background: #0e1a2b; }
+  .backdrop { position: absolute; inset: 0; }
+  .backdrop[hidden] { display: none; }
+  /* Low mist so the footer and rail stay legible over dark ground (sea, mesa). */
+  .backdrop::after {
+    content: ""; position: absolute; inset: auto 0 0 0; height: 22vh; pointer-events: none;
+    background: linear-gradient(to top, color-mix(in oklab, var(--sky-a) 94%, transparent) 0%, color-mix(in oklab, var(--sky-a) 60%, transparent) 45%, transparent 100%);
+  }
+  .deck { position: fixed; inset: 0; view-transition-name: stage; }
+</style>

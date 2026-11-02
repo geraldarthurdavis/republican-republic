@@ -1,0 +1,46 @@
+---
+import MiniMap from "../MiniMap.astro";
+import type { Chapter } from "../../data/chapters";
+
+interface Props { chapter: Chapter; count: number; sectionTitles: string[] }
+const { chapter, count, sectionTitles } = Astro.props;
+---
+<div class="chapter">
+  <div class="text">
+    <p class="eyebrow" data-reveal>Chapter {chapter.numeral} · {chapter.region}</p>
+    <p class="numeral inscription" aria-hidden="true" data-reveal>{chapter.numeral}</p>
+    <h2 class="inscription title" data-split>{chapter.title}</h2>
+    <p class="epigraph" data-reveal>{chapter.epigraph}</p>
+    <ul class="sections" data-reveal>
+      {sectionTitles.map((t) => <li>{t}</li>)}
+    </ul>
+    <p class="count" data-reveal><span class="n">{count}</span> {count === 1 ? "promise" : "promises"} in this chapter</p>
+  </div>
+  <div class="map" data-reveal>
+    <MiniMap states={chapter.map.states} points={chapter.map.points} size="lg" label={`Map highlighting ${chapter.region}`} />
+  </div>
+</div>
+
+<style>
+  .chapter {
+    position: relative; z-index: 1; height: 100%;
+    display: grid; grid-template-columns: 1.1fr 1fr; align-items: center; gap: 4vw;
+    padding: calc(var(--chrome-h) + 3vh) var(--gutter) calc(var(--rail-h) + 22vh);
+  }
+  .numeral {
+    font-size: clamp(5rem, 14vw, 14rem); margin: 0; line-height: .8;
+    color: transparent; -webkit-text-stroke: 1.2px var(--accent); opacity: .5;
+  }
+  .title { font-size: var(--step-4); margin: .2em 0 .35em; text-wrap: balance; }
+  .epigraph { font-family: var(--font-serif); font-style: italic; font-size: var(--step-2); line-height: 1.25; margin: 0 0 1.4rem; max-width: 26ch; }
+  .sections { list-style: none; padding: 0; margin: 0 0 1.2rem; display: grid; gap: .35rem; font-size: var(--step--1); color: var(--fg-muted); }
+  .sections li::before { content: "—"; color: var(--accent); margin-right: .6em; }
+  .count { font-family: var(--font-mono); font-size: var(--step--1); letter-spacing: .14em; text-transform: uppercase; }
+  .count .n { color: var(--accent); font-size: var(--step-1); }
+  .map { justify-self: center; width: 100%; }
+  @media (max-width: 860px) {
+    .chapter { grid-template-columns: 1fr; align-content: start; padding-bottom: calc(var(--rail-h) + 26vh); gap: 1.5rem; }
+    .map { max-width: 300px; justify-self: start; }
+    .numeral { display: none; }
+  }
+</style>

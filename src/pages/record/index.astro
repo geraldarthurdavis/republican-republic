@@ -1,0 +1,79 @@
+---
+/**
+ * The Record — every promise on one readable, linkable, printable page.
+ * The no-JS / screen-reader / search-engine counterpart to the deck.
+ */
+import Base from "../../layouts/Base.astro";
+import Meander from "../../components/Meander.astro";
+import { buildDeck, TOTAL_PROMISES } from "../../data/deck";
+import { chapters } from "../../data/chapters";
+import { site } from "../../data/site";
+
+const slides = buildDeck();
+const byChapter = chapters.map((c) => ({
+  c,
+  items: slides.filter((s) => s.kind === "promise" && s.chapter.id === c.id) as Extract<(typeof slides)[number], { kind: "promise" }>[],
+}));
+const fmt = (iso: string | null, raw: string) =>
+  iso ? new Date(iso + "T12:00:00Z").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" }) : raw;
+---
+<Base title="The Record" description={`All ${TOTAL_PROMISES} promises, with the result reported for each.`} document>
+  <div class="page">
+    <header class="masthead">
+      <a class="back" href="/">← The journey</a>
+      <p class="eyebrow">The Record</p>
+      <h1 class="inscription">{TOTAL_PROMISES} Promises</h1>
+      <Meander />
+      <p class="note">{site.attribution}</p>
+      <nav aria-label="Chapters" class="toc">
+        <ol>{chapters.map((c) => <li><a href={`#${c.id}`}>{c.numeral}. {c.title}</a></li>)}</ol>
+      </nav>
+    </header>
+
+    {byChapter.map(({ c, items }) => (
+      <section id={c.id} style={`--accent:${c.palette.accent}`}>
+        <h2 class="inscription"><span class="num">{c.numeral}</span> {c.title}</h2>
+        <p class="region">{c.region}</p>
+        <ol class="list">
+          {items.map((s) => (
+            <li id={`p-${s.promise.id}`}>
+              <p class="ord">{String(s.ordinal).padStart(3, "0")} · {s.sectionTitle}</p>
+              {s.promise.made.map((m) => (
+                <blockquote>“{m.quote}” <cite><time datetime={m.isoDate ?? undefined}>{fmt(m.isoDate, m.date)}</time></cite></blockquote>
+              ))}
+              <p class="kept"><strong>Kept:</strong> {s.promise.kept}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
+    ))}
+
+    <footer class="foot">
+      <p class="disclaimer">{site.disclaimer.paidForBy}. {site.disclaimer.authorization}</p>
+    </footer>
+  </div>
+</Base>
+
+<style>
+  .page { --fg: #0e1a2b; color: var(--fg); max-width: 860px; margin: 0 auto; padding: 4rem var(--gutter) 6rem; }
+  .back { font: .8rem var(--font-mono); letter-spacing: .14em; text-transform: uppercase; color: inherit; }
+  .masthead h1 { font-size: var(--step-4); margin: .3em 0 .5em; }
+  .masthead { --accent: var(--color-gilt); }
+  .note { color: var(--fg-muted); font-size: var(--step--1); }
+  .toc ol { columns: 2; padding-left: 1.2em; font-size: var(--step--1); }
+  .toc a { color: inherit; }
+  section { margin-top: 5rem; scroll-margin-top: 2rem; }
+  section h2 { font-size: var(--step-3); margin: 0; }
+  .num { color: var(--accent); }
+  .region { font-family: var(--font-serif); font-style: italic; font-size: var(--step-1); margin: .2em 0 2rem; color: var(--fg-muted); }
+  .list { list-style: none; padding: 0; display: grid; gap: 2.2rem; }
+  .list li { border-top: 1px solid var(--hairline); padding-top: 1.2rem; scroll-margin-top: 2rem; }
+  .ord { font: .72rem var(--font-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--accent); margin: 0 0 .6rem; }
+  blockquote { margin: 0 0 .8rem; font-family: var(--font-serif); font-style: italic; font-size: var(--step-1); line-height: 1.35; }
+  cite { font: normal .75rem var(--font-mono); color: var(--fg-muted); white-space: nowrap; margin-left: .4em; }
+  .kept { margin: 0; }
+  .kept strong { font-family: var(--font-mono); font-size: .75rem; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); margin-right: .3em; }
+  .foot { margin-top: 6rem; }
+  .disclaimer { display: inline-block; border: 1px solid currentColor; padding: .6rem 1rem; font-size: var(--step--1); }
+  @media print { .back, .toc { display: none; } section { break-inside: avoid-page; } }
+</style>

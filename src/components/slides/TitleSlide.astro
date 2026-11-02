@@ -1,0 +1,57 @@
+---
+import Meander from "../Meander.astro";
+import { TOTAL_PROMISES } from "../../data/deck";
+import { chapters } from "../../data/chapters";
+---
+<div class="title-slide">
+  <canvas class="ribbon" data-ribbon aria-hidden="true"></canvas>
+  <div class="veil" aria-hidden="true"></div>
+
+  <div class="inner">
+    <p class="eyebrow" data-reveal>Anno Domini MMXXVI · {chapters.length} Chapters · {TOTAL_PROMISES} Promises</p>
+    <h1 class="inscription headline" data-split>
+      From Sea<br /><span class="to">to</span> Shining Sea
+    </h1>
+    <Meander class="rule" />
+    <p class="lede" data-reveal>
+      A journey across the republic — frontier, city, farm, and coast — through{" "}
+      {TOTAL_PROMISES} promises made in public, and the record that followed.
+    </p>
+    <div class="actions" data-reveal>
+      <button type="button" class="btn primary" data-action="next">
+        Begin the journey <span aria-hidden="true">→</span>
+      </button>
+      <a class="btn ghost" href="/record">Read the full record</a>
+    </div>
+    <p class="hint" data-reveal aria-hidden="true">
+      <kbd>←</kbd><kbd>→</kbd> to travel · <kbd>Esc</kbd> for the map of chapters
+    </p>
+  </div>
+</div>
+
+<style>
+  .title-slide {
+    position: absolute; inset: 0;
+    display: grid; place-items: center;
+    background: radial-gradient(120% 90% at 50% 110%, #1f3a5f 0%, #0e1a2b 60%);
+    color: #f4f1ea;
+    --fg: #f4f1ea;
+    --accent: #b8913a;
+  }
+  .ribbon { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .veil { position: absolute; inset: 0; background: radial-gradient(60% 50% at 50% 45%, rgba(14,26,43,.55), transparent 70%); }
+  .inner {
+    position: relative; z-index: 1;
+    width: min(1100px, 100% - 2 * var(--gutter));
+    text-align: center;
+    padding-block: calc(var(--chrome-h) + 2rem) calc(var(--rail-h) + 2rem);
+  }
+  .headline { font-size: var(--step-5); margin: 1.2rem 0 1.4rem; text-wrap: balance; }
+  .to { font-family: var(--font-serif); font-style: italic; text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--color-gilt); }
+  .rule { max-width: 420px; margin-inline: auto; }
+  .lede { font-family: var(--font-serif); font-style: italic; font-size: var(--step-2); line-height: 1.3; max-width: 32ch; margin: 1.6rem auto 2.2rem; color: rgba(244,241,234,.86); text-wrap: balance; }
+  .actions { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
+  .hint { margin-top: 2.4rem; font-family: var(--font-mono); font-size: var(--step--1); letter-spacing: .12em; opacity: .55; }
+  kbd { font-family: inherit; border: 1px solid rgba(244,241,234,.35); border-radius: 4px; padding: 0 .4em; margin-inline: .15em; }
+  .eyebrow { color: rgba(244,241,234,.66); }
+</style>

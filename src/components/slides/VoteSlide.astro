@@ -1,0 +1,48 @@
+---
+import Meander from "../Meander.astro";
+import { site } from "../../data/site";
+
+const date = new Date(site.vote.electionDate + "T12:00:00Z");
+const weekday = date.toLocaleDateString("en-US", { weekday: "long", timeZone: "UTC" });
+const day = date.toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "UTC" });
+---
+<div class="vote-slide">
+  <canvas class="ribbon" data-ribbon aria-hidden="true"></canvas>
+  <div class="inner">
+    <p class="eyebrow" data-reveal>Epilogue · The next chapter</p>
+    <h2 class="inscription headline" data-split>{weekday},<br />{day}</h2>
+    <Meander class="rule" />
+    <p class="lede" data-reveal>The record is written. The next chapter is yours to write.</p>
+    <div class="actions" data-reveal>
+      <a class="btn primary" href={site.vote.primaryHref} target="_blank" rel="noopener">
+        {site.vote.primaryLabel} <span aria-hidden="true">↗</span>
+      </a>
+      <a class="btn ghost" href="/record">Read the full record</a>
+      <button type="button" class="btn ghost" data-action="first">Begin again</button>
+    </div>
+    <aside class="disclaimer" data-reveal>
+      <p>{site.disclaimer.paidForBy}. {site.disclaimer.authorization}</p>
+    </aside>
+  </div>
+</div>
+
+<style>
+  .vote-slide {
+    position: absolute; inset: 0; display: grid; place-items: center;
+    background: radial-gradient(120% 90% at 50% -10%, #1f3a5f 0%, #0e1a2b 62%);
+    color: #f4f1ea; --fg: #f4f1ea; --accent: #b8913a;
+  }
+  .ribbon { position: absolute; inset: 0; width: 100%; height: 100%; opacity: .7; }
+  .inner { position: relative; z-index: 1; text-align: center; width: min(980px, 100% - 2 * var(--gutter)); padding-block: calc(var(--chrome-h) + 2rem) calc(var(--rail-h) + 2rem); }
+  .headline { font-size: var(--step-5); margin: 1rem 0 1.4rem; }
+  .rule { max-width: 360px; margin-inline: auto; }
+  .lede { font-family: var(--font-serif); font-style: italic; font-size: var(--step-2); margin: 1.4rem auto 2rem; max-width: 28ch; }
+  .actions { display: flex; gap: .75rem; justify-content: center; flex-wrap: wrap; }
+  .eyebrow { color: rgba(244,241,234,.66); }
+  .disclaimer {
+    margin: 3rem auto 0; display: inline-block; padding: .7rem 1.1rem;
+    border: 1px solid rgba(244,241,234,.5);
+    font-size: var(--step--1); letter-spacing: .02em;
+  }
+  .disclaimer p { margin: 0; }
+</style>

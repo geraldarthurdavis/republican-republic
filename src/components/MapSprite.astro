@@ -1,0 +1,10 @@
+---
+/** Render once per page, before any <MiniMap />. */
+import { states, borders } from "./mapGeometry";
+---
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    {states.map((s) => <path id={`us-st-${s.id}`} d={s.d} />)}
+    <path id="us-borders" d={borders} />
+  </defs>
+</svg>

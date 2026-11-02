@@ -1,0 +1,169 @@
+---
+/**
+ * Procedural landscape backdrop. Pure SVG, generated at build time from a
+ * seed, so every chapter has its own horizon without any photo licensing.
+ * Layers carry data-depth for the parallax drift in choreo.ts.
+ *
+ * Swap-in point: a chapter may later add a licensed/public-domain photo
+ * (NPS, NASA, LoC) behind this as a duotone; keep the SVG as the fallback.
+ */
+import type { Scene } from "../data/chapters";
+
+interface Props { scene: Scene; seed?: number; tone?: "light" | "dark" }
+const { scene, seed = 7, tone = "light" } = Astro.props;
+
+const W = 1600, H = 900;
+function rng(s: number) { let x = s % 2147483647 || 1; return () => (x = (x * 16807) % 2147483647) / 2147483647; }
+
+/** Smooth ridge line closed to the bottom edge. */
+function ridge(s: number, base: number, amp: number, n: number, opts: { flat?: boolean; peak?: number } = {}) {
+  const r = rng(s);
+  const pts: [number, number][] = [];
+  for (let i = 0; i <= n; i++) {
+    let h = (r() - 0.5) * 2 * amp;
+    if (opts.flat) h = Math.round(h / (amp * 0.5)) * amp * 0.5;
+    if (opts.peak !== undefined) {
+      const d = Math.abs(i / n - opts.peak);
+      h = -amp * 2.6 * Math.max(0, 1 - d * 3.2) + h * 0.3;
+    }
+    pts.push([(i / n) * W, base + h]);
+  }
+  let d = `M0 ${H} L0 ${pts[0][1].toFixed(1)}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const [x0, y0] = pts[i], [x1, y1] = pts[i + 1];
+    const mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
+    d += opts.flat ? ` L${x1.toFixed(1)} ${y0.toFixed(1)} L${x1.toFixed(1)} ${y1.toFixed(1)}` : ` Q${x0.toFixed(1)} ${y0.toFixed(1)} ${mx.toFixed(1)} ${my.toFixed(1)}`;
+  }
+  return d + ` L${W} ${pts[pts.length - 1][1].toFixed(1)} L${W} ${H} Z`;
+}
+
+type Layer = { d: string; o: number; depth: number };
+const cfg: Record<Scene, { base: number; amp: number; n: number; flat?: boolean; peak?: number; layers: number }> = {
+  colonnade: { base: 760, amp: 6, n: 6, layers: 2 },
+  mesa:       { base: 650, amp: 70, n: 6, flat: true, layers: 3 },
+  skyline:    { base: 780, amp: 8, n: 8, layers: 2 },
+  mainstreet: { base: 740, amp: 18, n: 7, layers: 3 },
+  industry:   { base: 720, amp: 24, n: 9, layers: 3 },
+  fields:     { base: 600, amp: 34, n: 6, layers: 4 },
+  plains:     { base: 700, amp: 14, n: 12, layers: 3 },
+  mountains:  { base: 560, amp: 110, n: 9, layers: 4 },
+  dome:       { base: 780, amp: 6, n: 6, layers: 2 },
+  sea:        { base: 690, amp: 0, n: 2, layers: 1 },
+  steeple:    { base: 680, amp: 30, n: 7, layers: 3 },
+  orbit:      { base: 820, amp: 10, n: 8, layers: 2 },
+  summit:     { base: 560, amp: 90, n: 10, peak: 0.62, layers: 3 },
+  dawn:       { base: 700, amp: 20, n: 8, layers: 3 },
+};
+const c = cfg[scene];
+const layers: Layer[] = Array.from({ length: c.layers }, (_, i) => ({
+  d: ridge(seed * 31 + i * 97, c.base + i * (c.amp * 0.9 + 40), c.amp * (1 - i * 0.18), c.n + i * 2, { flat: c.flat, peak: i === 0 ? c.peak : undefined }),
+  o: 0.32 + (i / Math.max(1, c.layers - 1)) * 0.68,
+  depth: c.layers - i,
+}));
+
+const r = rng(seed * 13 + 5);
+const stars = scene === "orbit" ? Array.from({ length: 90 }, () => [r() * W, r() * 620, r() * 1.4 + 0.3, r() * 0.7 + 0.2]) : [];
+const towers = scene === "skyline"
+  ? Array.from({ length: 34 }, (_, i) => { const w = 26 + r() * 44; const h = 90 + Math.pow(r(), 2) * 330; return [i * 48 + r() * 10, 790 - h, w, h]; })
+  : [];
+---
+<svg class="scene" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax slice" aria-hidden="true" data-tone={tone}>
+  <defs>
+    <linearGradient id={`sky-${seed}`} x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="var(--sky-a)" />
+      <stop offset="1" stop-color="var(--sky-b)" />
+    </linearGradient>
+    <radialGradient id={`sun-${seed}`} cx="0.72" cy="0.62" r="0.5">
+      <stop offset="0" stop-color="#fff" stop-opacity={tone === "dark" ? 0.08 : 0.55} />
+      <stop offset="1" stop-color="#fff" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <rect width={W} height={H} fill={`url(#sky-${seed})`} />
+  <rect width={W} height={H} fill={`url(#sun-${seed})`} data-depth="0.5" />
+
+  {stars.length > 0 && (
+    <g data-depth="0.3">
+      {stars.map(([x, y, rad, o]) => <circle cx={x} cy={y} r={rad} fill="#f4f1ea" opacity={o} />)}
+      <path d="M -200 980 A 1200 1200 0 0 1 1800 980" fill="none" stroke="var(--accent)" stroke-opacity="0.35" stroke-width="1" />
+      <circle cx="1240" cy="210" r="46" fill="#e9e3d3" opacity="0.92" />
+    </g>
+  )}
+
+  {layers.map((l) => (
+    <path d={l.d} fill="var(--land)" opacity={l.o} data-depth={l.depth} />
+  ))}
+
+  {/* ── Signature overlays: single-weight, architectural line art ── */}
+  {scene === "colonnade" && (
+    <g fill="var(--land)" data-depth="1">
+      <rect x="380" y="430" width="840" height="34" />
+      <path d="M360 430 L800 330 L1240 430 Z" />
+      {Array.from({ length: 9 }, (_, i) => <rect x={410 + i * 96} y="470" width="34" height="290" rx="2" />)}
+      <rect x="360" y="760" width="880" height="22" />
+    </g>
+  )}
+  {scene === "dome" && (
+    <g fill="var(--land)" data-depth="1">
+      <rect x="520" y="640" width="560" height="140" />
+      <rect x="680" y="520" width="240" height="120" />
+      <path d="M660 522 Q800 300 940 522 Z" />
+      <rect x="788" y="300" width="24" height="60" />
+      <circle cx="800" cy="292" r="10" />
+      {Array.from({ length: 11 }, (_, i) => <rect x={540 + i * 50} y="660" width="14" height="110" fill="var(--sky-a)" opacity=".55" />)}
+    </g>
+  )}
+  {scene === "skyline" && (
+    <g fill="var(--land)" data-depth="1">
+      {towers.map(([x, y, w, h]) => <rect x={x} y={y} width={w} height={h} />)}
+      {towers.slice(0, 60).map(([x, y, w, h], i) => i % 3 === 0 && <rect x={x + w / 2 - 1} y={y + 18} width="2" height={h * 0.6} fill="var(--accent)" opacity=".35" />)}
+    </g>
+  )}
+  {scene === "industry" && (
+    <g fill="var(--land)" data-depth="1">
+      {[[210, 420], [260, 470], [1180, 440]].map(([x, y]) => <rect x={x} y={y} width="26" height={760 - y} />)}
+      <path d="M560 700 L700 600 L840 700 L980 600 L1120 700" fill="none" stroke="var(--land)" stroke-width="6" />
+      <rect x="500" y="696" width="680" height="10" />
+    </g>
+  )}
+  {scene === "fields" && (
+    <g stroke="var(--accent)" stroke-opacity=".28" stroke-width="1.2" fill="none" data-depth="1.2">
+      {Array.from({ length: 22 }, (_, i) => <path d={`M800 640 L${-400 + i * 110} 900`} />)}
+    </g>
+  )}
+  {scene === "plains" && (
+    <g data-depth="1">
+      <path d="M0 742 C 400 728 900 760 1600 736" stroke="var(--accent)" stroke-width="3" fill="none" opacity=".7" />
+      {[300, 980, 1360].map((x) => <path d={`M${x} 700 l18 -110 l18 110 M${x + 6} 650 h24`} stroke="var(--land)" stroke-width="5" fill="none" />)}
+    </g>
+  )}
+  {scene === "sea" && (
+    <g data-depth="1">
+      <rect x="0" y="690" width={W} height={H - 690} fill="var(--land)" />
+      {Array.from({ length: 9 }, (_, i) => (
+        <path d={`M0 ${712 + i * 22} ${Array.from({ length: 17 }, (_, k) => `Q ${k * 100 + 50} ${712 + i * 22 + (k % 2 ? 5 : -5)} ${(k + 1) * 100} ${712 + i * 22}`).join(" ")}`}
+          fill="none" stroke="var(--sky-a)" stroke-opacity={0.12 + i * 0.025} stroke-width="1.2" />
+      ))}
+      <path d="M1060 690 l90 0 l-14 -18 l-60 0 z M1100 672 l0 -30 l14 0 l0 30" fill="var(--accent)" opacity=".75" />
+    </g>
+  )}
+  {scene === "steeple" && (
+    <g fill="var(--land)" data-depth="1">
+      <rect x="1040" y="560" width="70" height="140" />
+      <path d="M1030 562 L1075 470 L1120 562 Z" />
+      <rect x="1072" y="400" width="6" height="80" />
+      <rect x="1062" y="420" width="26" height="5" />
+      {[[260, 600, 70], [380, 630, 54], [1300, 610, 64]].map(([x, y, rad]) => <circle cx={x} cy={y} r={rad} opacity=".9" />)}
+    </g>
+  )}
+  {scene === "mainstreet" && (
+    <g fill="var(--land)" data-depth="1">
+      {Array.from({ length: 12 }, (_, i) => { const x = 140 + i * 112; const h = 90 + ((i * 37) % 70); return <path d={`M${x} 760 V${760 - h} l44 -36 l44 36 V760 Z`} />; })}
+    </g>
+  )}
+</svg>
+
+<style>
+  .scene { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .scene [data-depth] { will-change: transform; }
+</style>

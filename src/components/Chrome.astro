@@ -1,0 +1,119 @@
+---
+/** Persistent deck chrome: top bar, bottom progress rail, chapter index dialog. */
+import { site } from "../data/site";
+import { chapters } from "../data/chapters";
+import type { Slide } from "../data/deck";
+
+interface Props { slides: Slide[] }
+const { slides } = Astro.props;
+const total = slides.length;
+
+// Rail segments: one per chapter, sized by slide count.
+const segments = chapters.map((c) => {
+  const start = slides.findIndex((s) => s.kind === "chapter" && s.id === c.id);
+  const len = slides.filter((s) => (s.kind === "chapter" || s.kind === "promise") && s.chapter.id === c.id).length;
+  return { c, start, len };
+});
+---
+<header class="topbar">
+  <a class="wordmark inscription" href="/" aria-label={`${site.name} — home`}>
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 2.5l2.6 7.9H23l-6.8 4.9 2.6 7.9L12 18.3l-6.8 4.9 2.6-7.9L1 10.4h8.4z" fill="currentColor"/></svg>
+    {site.name}
+  </a>
+  <p class="where" aria-live="polite" data-where>&nbsp;</p>
+  <nav class="tools" aria-label="Deck">
+    <button type="button" class="tool" data-action="overview" aria-haspopup="dialog">Chapters</button>
+    <a class="tool" href="/record">Record</a>
+  </nav>
+</header>
+
+<footer class="rail">
+  <button type="button" class="arrow" data-action="prev" aria-label="Previous slide">←</button>
+  <ol class="segments" aria-label="Chapters">
+    {segments.map(({ c, start, len }) => (
+      <li style={`flex:${len}`}>
+        <button type="button" data-goto={start} style={`--accent:${c.palette.accent}`} aria-label={`Chapter ${c.numeral}: ${c.title}`}>
+          <span class="fill" data-fill={c.id}></span>
+          <span class="tip">{c.numeral} · {c.title}</span>
+        </button>
+      </li>
+    ))}
+  </ol>
+  <span class="counter" data-counter aria-hidden="true">1 / {total}</span>
+  <button type="button" class="arrow" data-action="next" aria-label="Next slide">→</button>
+</footer>
+
+<dialog class="overview" data-overview aria-label="Chapters">
+  <div class="ov-inner">
+    <div class="ov-head">
+      <p class="eyebrow">The journey</p>
+      <button type="button" class="tool" data-action="overview-close">Close</button>
+    </div>
+    <ol class="ov-grid">
+      {segments.map(({ c, start, len }) => (
+        <li>
+          <button type="button" class="ov-card" data-goto={start} style={`--sky-a:${c.palette.skyA};--sky-b:${c.palette.skyB};--accent:${c.palette.accent};--fg:${c.tone === "dark" ? "#f4f1ea" : "#0e1a2b"}`}>
+            <span class="ov-num inscription">{c.numeral}</span>
+            <span class="ov-title inscription">{c.title}</span>
+            <span class="ov-region">{c.region}</span>
+            <span class="ov-count">{len - 1} promises</span>
+          </button>
+        </li>
+      ))}
+    </ol>
+  </div>
+</dialog>
+
+<style>
+  .topbar, .rail {
+    position: fixed; left: 0; right: 0; z-index: 10;
+    display: flex; align-items: center; gap: 1rem;
+    padding-inline: var(--gutter);
+    color: var(--chrome-fg, #0e1a2b);
+    view-transition-name: none;
+    transition: color 500ms var(--ease-republic);
+  }
+  :global(html[data-tone="dark"]) .topbar, :global(html[data-tone="dark"]) .rail { --chrome-fg: #f4f1ea; }
+  .topbar { top: 0; height: var(--chrome-h); justify-content: space-between; view-transition-name: topbar; }
+  .rail { bottom: 0; height: var(--rail-h); view-transition-name: rail; }
+
+  .wordmark { white-space: nowrap; display: inline-flex; align-items: center; gap: .55rem; font-size: .8rem; letter-spacing: .22em; color: inherit; text-decoration: none; }
+  .where { margin: 0; font-family: var(--font-mono); font-size: var(--step--1); letter-spacing: .16em; text-transform: uppercase; opacity: .7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tools { display: flex; gap: .25rem; }
+  .tool {
+    font: 500 .75rem/1 var(--font-mono); letter-spacing: .16em; text-transform: uppercase;
+    color: inherit; background: transparent; border: 1px solid transparent; border-radius: 999px;
+    padding: .6rem .9rem; cursor: pointer; text-decoration: none;
+  }
+  .tool:hover { border-color: currentColor; }
+
+  .arrow { background: none; border: 0; color: inherit; font-size: 1.1rem; width: 2.25rem; height: 2.25rem; border-radius: 50%; cursor: pointer; }
+  .arrow:hover { background: color-mix(in oklab, currentColor 10%, transparent); }
+  .segments { flex: 1; display: flex; gap: 3px; list-style: none; margin: 0; padding: 0; }
+  .segments button { position: relative; display: block; width: 100%; height: 14px; background: none; border: 0; padding: 0; cursor: pointer; }
+  .segments button::before { content: ""; position: absolute; left: 0; right: 0; top: 6px; height: 2px; background: color-mix(in oklab, currentColor 22%, transparent); }
+  .fill { position: absolute; left: 0; top: 6px; height: 2px; width: 0; background: var(--accent); transition: width 600ms var(--ease-republic); }
+  .tip { position: absolute; bottom: 18px; left: 0; white-space: nowrap; font: .7rem var(--font-mono); letter-spacing: .14em; text-transform: uppercase; opacity: 0; transform: translateY(4px); transition: 200ms; pointer-events: none; }
+  .segments button:hover .tip, .segments button:focus-visible .tip { opacity: .9; transform: none; }
+  .counter { font: .75rem var(--font-mono); letter-spacing: .12em; min-width: 6ch; text-align: right; opacity: .7; }
+
+  .overview { width: 100%; max-width: none; height: 100%; max-height: none; margin: 0; padding: 0; border: 0; background: rgba(14,26,43,.92); color: #f4f1ea; backdrop-filter: blur(10px); }
+  .overview::backdrop { background: transparent; }
+  .ov-inner { padding: var(--gutter); max-width: 1400px; margin: 0 auto; }
+  .ov-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+  .ov-head .eyebrow { color: rgba(244,241,234,.7); }
+  .ov-grid { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+  .ov-card {
+    width: 100%; aspect-ratio: 4 / 3; text-align: left; cursor: pointer;
+    display: grid; grid-template-rows: auto 1fr auto auto; padding: 1rem;
+    color: var(--fg); background: linear-gradient(var(--sky-a), var(--sky-b));
+    border: 1px solid rgba(244,241,234,.12); border-radius: 2px;
+    transition: transform 400ms var(--ease-republic), box-shadow 400ms var(--ease-republic);
+  }
+  .ov-card:hover { transform: translateY(-4px); box-shadow: 0 20px 40px -20px rgba(0,0,0,.6); }
+  .ov-num { font-size: 2rem; color: var(--accent); }
+  .ov-title { font-size: 1.1rem; align-self: end; }
+  .ov-region, .ov-count { font: .7rem var(--font-mono); letter-spacing: .12em; text-transform: uppercase; opacity: .7; }
+
+  @media (max-width: 640px) { .where { display: none; } .tip { display: none; } .wordmark { font-size: .7rem; letter-spacing: .16em; } .tool { padding-inline: .6rem; } }
+</style>

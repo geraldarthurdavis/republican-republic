@@ -1,0 +1,120 @@
+---
+import type { Chapter } from "../../data/chapters";
+import { TOTAL_PROMISES } from "../../data/deck";
+
+interface Props {
+  chapter: Chapter;
+  promise: {
+    id: string;
+    made: { quote: string; date: string; isoDate: string | null }[];
+    kept: string;
+    figure: { raw: string; prefix: string; value: number; decimals: number; suffix: string } | null;
+  };
+  sectionTitle: string;
+  ordinal: number;
+}
+const { chapter, promise, sectionTitle, ordinal } = Astro.props;
+
+const fmt = (iso: string | null, raw: string) =>
+  iso ? new Date(iso + "T12:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }) : raw;
+const quoteLen = promise.made.reduce((n, m) => n + m.quote.length, 0);
+const density = quoteLen > 220 ? "long" : quoteLen > 120 ? "medium" : "short";
+const pad = (n: number) => String(n).padStart(3, "0");
+
+// Wrap the headline figure in the kept text so it can be emphasised in place.
+const f = promise.figure;
+const keptHtml = f
+  ? promise.kept.replace(f.raw, `<strong class="fig-inline">${f.raw}</strong>`)
+  : promise.kept;
+---
+<article class="promise" data-density={density} id={`p-${promise.id}`}>
+  <header class="meta" data-reveal>
+    <span class="eyebrow">{chapter.numeral} · {chapter.title}</span>
+    <span class="eyebrow section">{sectionTitle}</span>
+  </header>
+
+  <div class="tablet">
+    <div class="made">
+      <p class="label" data-reveal>Promise made</p>
+      {promise.made.map((m) => (
+        <blockquote data-reveal>
+          <p class="quote">“{m.quote}”</p>
+          <footer><time datetime={m.isoDate ?? undefined}>{fmt(m.isoDate, m.date)}</time></footer>
+        </blockquote>
+      ))}
+    </div>
+
+    <div class="seam" aria-hidden="true"><span></span></div>
+
+    <div class="kept">
+      <p class="label" data-reveal><span class="tick" aria-hidden="true">✓</span> Promise kept</p>
+      {f && (
+        <p class="figure" data-reveal aria-hidden="true">
+          {f.prefix && <span class="pre">{f.prefix}</span>}
+          <span data-count={f.value} data-decimals={f.decimals}>{f.value.toLocaleString("en-US", { minimumFractionDigits: f.decimals, maximumFractionDigits: f.decimals })}</span>
+          {f.suffix && <span class="unit">{f.suffix}</span>}
+        </p>
+      )}
+      <p class="result" data-reveal set:html={keptHtml} />
+    </div>
+  </div>
+
+  <footer class="foot" data-reveal>
+    <span class="ord"><span class="cur">{pad(ordinal)}</span> / {TOTAL_PROMISES}</span>
+    <span class="src">As reported by the White House</span>
+  </footer>
+</article>
+
+<style>
+  .promise {
+    position: relative; z-index: 1; height: 100%;
+    display: grid; grid-template-rows: auto 1fr auto; gap: 2vh;
+    padding: calc(var(--chrome-h) + 2vh) var(--gutter) calc(var(--rail-h) + 2.5vh);
+  }
+  .meta { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+  .section { max-width: 52ch; text-align: right; }
+
+  .tablet {
+    align-self: center;
+    display: grid; grid-template-columns: 1fr auto 1fr; gap: clamp(1.25rem, 3vw, 3.5rem);
+    padding: clamp(1.4rem, 3vw, 3rem);
+    background: color-mix(in oklab, var(--sky-a) 78%, transparent);
+    backdrop-filter: blur(14px) saturate(1.1);
+    -webkit-backdrop-filter: blur(14px) saturate(1.1);
+    border: 1px solid var(--hairline);
+    border-radius: 2px;
+    box-shadow: 0 30px 80px -40px rgba(14, 26, 43, .45);
+    max-height: 100%;
+    overflow: auto;
+  }
+  .label { font-family: var(--font-mono); font-size: var(--step--1); letter-spacing: .2em; text-transform: uppercase; color: var(--accent); margin: 0 0 1rem; }
+  .tick { display: inline-grid; place-items: center; width: 1.4em; height: 1.4em; border: 1px solid currentColor; border-radius: 50%; font-size: .85em; margin-right: .4em; }
+
+  blockquote { margin: 0 0 1.2rem; }
+  .quote { font-family: var(--font-serif); font-style: italic; font-weight: 500; line-height: 1.22; margin: 0 0 .6rem; text-wrap: pretty; }
+  [data-density="short"] .quote { font-size: var(--step-3); }
+  [data-density="medium"] .quote { font-size: var(--step-2); }
+  [data-density="long"] .quote { font-size: var(--step-1); }
+  blockquote footer { font-family: var(--font-mono); font-size: var(--step--1); color: var(--fg-muted); letter-spacing: .08em; }
+
+  .seam { display: grid; place-items: center; }
+  .seam span { width: 1px; height: 100%; background: linear-gradient(transparent, var(--accent), transparent); opacity: .6; }
+
+  .figure { display: flex; align-items: baseline; gap: .15em; margin: 0 0 .8rem; font-family: var(--font-mono); font-weight: 500; font-size: var(--step-4); line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .figure .unit { font-size: .42em; color: var(--accent); letter-spacing: .04em; }
+  .figure .pre { font-size: .55em; color: var(--accent); align-self: flex-start; margin-top: .12em; }
+  .result { margin: 0; font-size: var(--step-0); max-width: 60ch; text-wrap: pretty; }
+  .result :global(.fig-inline) { font-weight: 600; color: var(--fg); box-shadow: inset 0 -0.38em 0 color-mix(in oklab, var(--accent) 22%, transparent); }
+
+  :global(.slide[data-tone="dark"]) .tablet { background: color-mix(in oklab, var(--sky-a) 88%, transparent); }
+  .foot { display: flex; gap: 1rem; justify-content: space-between; font-family: var(--font-mono); font-size: var(--step--1); letter-spacing: .12em; text-transform: uppercase; color: var(--fg-muted); }
+  .ord .cur { color: var(--fg); }
+
+  @media (max-width: 860px) {
+    .tablet { grid-template-columns: 1fr; align-self: start; }
+    .seam span { width: 100%; height: 1px; background: linear-gradient(90deg, transparent, var(--accent), transparent); }
+    .section { display: none; }
+    .ord { white-space: nowrap; }
+    .src { text-align: right; font-size: .62rem; }
+  }
+</style>

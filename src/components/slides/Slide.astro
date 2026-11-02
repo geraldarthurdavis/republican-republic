@@ -1,0 +1,42 @@
+---
+/** Shared slide shell: sets the per-slide palette and ARIA semantics. */
+interface Props {
+  index: number;
+  total: number;
+  id: string;
+  label: string;
+  chapter?: string;
+  tone?: "light" | "dark";
+  palette?: { skyA: string; skyB: string; land: string; accent: string };
+  kind: string;
+}
+const { index, total, id, label, chapter = "", tone = "light", palette, kind } = Astro.props;
+const vars = palette
+  ? `--sky-a:${palette.skyA};--sky-b:${palette.skyB};--land:${palette.land};--accent:${palette.accent};`
+  : "";
+const fg = tone === "dark" ? "--fg:#f4f1ea;" : "--fg:#0e1a2b;";
+---
+<section
+  class="slide"
+  data-slide={index}
+  data-slide-id={id}
+  data-chapter={chapter}
+  data-kind={kind}
+  data-tone={tone}
+  aria-roledescription="slide"
+  aria-label={`${label} — ${index + 1} of ${total}`}
+  style={vars + fg}
+  hidden={index !== 0}
+>
+  <slot />
+</section>
+
+<style>
+  .slide {
+    position: absolute;
+    inset: 0;
+    color: var(--fg);
+    overflow: hidden;
+  }
+  .slide[hidden] { display: none; }
+</style>
