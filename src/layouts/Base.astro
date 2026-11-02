@@ -27,6 +27,18 @@ const canonical = new URL(Astro.url.pathname, site.url).href;
     <meta property="og:description" content={description} />
     <meta property="og:image" content={new URL("/og.png", site.url).href} />
     <meta name="twitter:card" content="summary_large_image" />
+    {!document && (
+      <script is:inline>
+        // Hold the deck's entrance targets hidden until deck.ts boots, so the
+        // first slide isn't painted fully, then hidden and animated in again.
+        // Failsafe: never leave content hidden if the deck script fails.
+        if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          var r = document.documentElement;
+          r.setAttribute("data-booting", "");
+          setTimeout(function () { r.removeAttribute("data-booting"); }, 3000);
+        }
+      </script>
+    )}
   </head>
   <body class:list={[{ "is-document": document }]}>
     <slot />

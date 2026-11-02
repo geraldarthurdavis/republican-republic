@@ -113,6 +113,10 @@ body.is-document { overflow: auto; background: var(--color-marble); }
 .btn.primary:hover { background: var(--color-gilt); border-color: var(--color-gilt); }
 .btn.ghost:hover { background: color-mix(in oklab, currentColor 12%, transparent); }
 
+/* Pre-boot gate (set inline in Base.astro, cleared by deck.ts once the first
+   slide's entrance has applied its from-states). */
+html[data-booting] [data-deck] :is([data-reveal], [data-split], .tablet) { visibility: hidden; }
+
 /* ───────────────────── View transitions ───────────────────── */
 @view-transition { navigation: auto; }
 

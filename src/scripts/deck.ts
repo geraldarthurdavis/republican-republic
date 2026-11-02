@@ -66,6 +66,7 @@ export function initDeck() {
     // (Calling enter() after the transition finished made content arrive
     // fully rendered, vanish, then animate in a second time.)
     enter(slides[next]);
+    delete root.dataset.booting; // navigated before boot finished: this entrance is the first
   }
 
   async function go(next: number, opts: { push?: boolean } = {}) {
@@ -134,5 +135,14 @@ export function initDeck() {
   slides.forEach((s, i) => (s.hidden = i !== start));
   current = start;
   paintChrome(start);
-  if (!prefersReducedMotion()) requestAnimationFrame(() => enter(slides[start]));
+  // The pre-boot gate keeps entrance targets hidden until here. Wait briefly
+  // for webfonts (SplitText measures lines), then start the entrance: its
+  // from-states apply synchronously, so lifting the gate right after shows
+  // nothing in its final state first. One entrance, no flash.
+  const boot = () => {
+    if (!("booting" in root.dataset)) return; // already cleared (failsafe or early navigation)
+    if (!prefersReducedMotion()) enter(slides[current]);
+    delete root.dataset.booting;
+  };
+  Promise.race([document.fonts?.ready, new Promise((r) => setTimeout(r, 1200))]).then(boot, boot);
 }
